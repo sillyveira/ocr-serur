@@ -2,6 +2,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import Image from "next/image";
+import imageToText from "@/lib/ocr";
 
 function OCRPage() {
     const [isLoading, setIsLoading] = useState(false);
@@ -23,12 +24,15 @@ function OCRPage() {
         setUploadedFileName(file.name);
         setIsLoading(true);
 
-        // Simulate processing time
-        setTimeout(() => {
-            setIsLoading(false);
-            // Aqui você pode navegar para a página de resultado
-            // router.push('/resultado');
-        }, 3000);
+        const output = await imageToText([file])
+
+        if (typeof output[0] === "string") {
+            alert(output[0]);
+        } else {
+            alert(output[0].data.text);
+        }
+
+        setIsLoading(false);
     };
     
     return (
