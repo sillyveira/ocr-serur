@@ -4,7 +4,7 @@ import Image from "next/image";
 import imageToText from "@/lib/ocr";
 import type { OcrResult } from "@/types/ocr";
 import { pdfToImage } from "@/lib/pdf";
-
+import type { LogEntry } from "@/types/log";
 export default function OCRPage() {
   const [file, setFile] = useState<File | null>(null);
   const [uploadedFileName, setUploadedFileName] = useState<string>("");
@@ -22,14 +22,31 @@ export default function OCRPage() {
     setIsLoading(true);
     setUploadedFileName(file.name);
 
-    let imageList: File[] = [file];
+    let log: LogEntry = {
+      timestamp: new Date().toISOString(),
+      status: "",
+      filename: file.name,
+      size: file.size,
+      type: file.type,
+      language,
+    };
 
-    if (file.type === "application/pdf") {
-      imageList = await pdfToImage(file);
+    try {
+      let imageList: File[] = [file];
+
+      if (file.type === "application/pdf") {
+        imageList = await pdfToImage(file);
+      }
+
+      await imageToText(imageList, setResult, language);
+    } catch (error) {
+      alert(`Erro ao processar o arquivo: ${error}`);
+      log.status = "erro";
+    } finally {
+      setIsLoading(false);
+
+      await fetch("/api/log", { method: "POST", body: JSON.stringify(log) });
     }
-
-    await imageToText(imageList, setResult, language);
-    setIsLoading(false);
   };
 
   const handleReset = () => {
@@ -49,8 +66,32 @@ export default function OCRPage() {
     });
   };
 
+  const handleCopyText = (text: string) => {
+    try {
+      navigator.clipboard.writeText(text);
+      alert("Texto copiado com sucesso."); // TODO: trocar por toaster
+    } catch (e) {
+      alert(`Erro ao copiar: ${e}`);
+    }
+  };
+
+  const handleDownloadText = (text: string, filename: string) => {
+    try {
+      // Cria um elemento no HTML com o txt e clica para baixar.
+      const element = document.createElement("a");
+      const file = new Blob([text], { type: "text/plain" });
+      element.href = URL.createObjectURL(file);
+      element.download = `${filename.split(".")[0]}_texto.txt`;
+      document.body.appendChild(element);
+      element.click();
+      document.body.removeChild(element);
+    } catch (e) {
+      alert(`Erro ao baixar: ${e}`);
+    }
+  };
+
   // Calcula a média das porcentagens de todos itens
-  const calculateOverallProgress = (results: OcrResult[] | null): number => { 
+  const calculateOverallProgress = (results: OcrResult[] | null): number => {
     if (!results || results.length === 0) return 0;
     const total = results.reduce((sum, r) => sum + (r.progress || 0), 0);
     return total / results.length;
@@ -105,7 +146,7 @@ export default function OCRPage() {
             </div>
 
             {/* Resultados por página */}
-            <div className="w-full max-h-[32rem] overflow-y-auto space-y-4 p-4 bg-white rounded-xl shadow-lg">
+            <div className="w-full max-h-[28rem] overflow-y-auto space-y-4 p-4 bg-white rounded-xl shadow-lg">
               {result.map((item, idx) => (
                 <div key={idx} className="mb-6 border-b pb-4 last:border-b-0">
                   <div className="flex justify-between mb-2">
@@ -130,7 +171,7 @@ export default function OCRPage() {
                       }}
                     />
                   </div>
-
+                  <div></div>
                   {/* Status da página */}
                   <p className="text-sm text-gray-500 text-center mb-2">
                     {item.result
@@ -141,6 +182,25 @@ export default function OCRPage() {
                   {/* Texto extraído */}
                   {item.result && (
                     <div className="bg-gray-50 p-4 rounded-lg">
+                      <div className="flex justify-end gap-2 mb-3">
+                        <button
+                          onClick={() => handleCopyText(item.result || "")}
+                          className="px-3 py-1 rounded bg-red-100 text-red-700 hover:bg-red-200 transition-colors text-sm font-medium border border-red-200"
+                        >
+                          Copiar
+                        </button>
+                        <button
+                          onClick={() =>
+                            handleDownloadText(
+                              item.result || "",
+                              `${uploadedFileName}_pagina_${idx + 1}`
+                            )
+                          }
+                          className="px-3 py-1 rounded bg-red-500 text-white hover:bg-red-600 transition-colors text-sm font-medium"
+                        >
+                          Baixar
+                        </button>
+                      </div>
                       <pre className="whitespace-pre-wrap text-sm text-gray-800">
                         {item.result}
                       </pre>
