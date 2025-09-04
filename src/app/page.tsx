@@ -5,19 +5,9 @@ import HomeFeature from "./components/home-feature";
 export default function Home() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-red-50 to-red-200 flex flex-col">
-      {/* Header */}
-      <header className="flex justify-center py-8">
-        <Image
-          src="/logo_serur.svg"
-          alt="SERUR"
-          width={120}
-          height={48}
-          className="h-12 md:h-16"
-        />
-      </header>
 
       {/* Main Content */}
-      <main className="flex-1 flex flex-col items-center justify-center px-4">
+      <main className="flex-1 flex flex-col items-center justify-center px-4 mt-24">
         <div className="max-w-2xl w-full space-y-8">
           <div className="text-center space-y-4">
             <h1 className="text-black text-4xl font-bold mb-2">

@@ -109,18 +109,6 @@ export default function OCRPage() {
     <div className="min-h-screen bg-gradient-to-b from-red-50 to-red-200 flex flex-col">
       {/* Header fixo */}
       <Toaster />
-      <header className="fixed top-0 left-0 w-full bg-gradient-to-b from-red-50 to-red-100 shadow-sm z-10 py-4">
-        <div className="flex justify-center">
-          <Image
-            src="/logo_serur.svg"
-            alt="SERUR"
-            width={120}
-            height={48}
-            className="h-12 md:h-16"
-          />
-        </div>
-      </header>
-
       <main className="flex-1 flex flex-col items-center justify-center px-4 py-8 w-full mt-24">
         {result && result.length > 0 ? (
           <div className="max-w-4xl w-full space-y-6">
