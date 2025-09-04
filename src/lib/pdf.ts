@@ -6,12 +6,13 @@ declare global {
   }
 }
 
-async function loadPdfJs() {
+// a biblioteca no NPM não estava funcionando, então baixei do CDN e adicionei no projeto. tem um fallback para baixar caso os arquivos locais falhem.
+async function loadPdfJs() { 
   if (typeof window !== 'undefined' && !window.pdfjsLib) {
     return new Promise((resolve, reject) => {
       const script = document.createElement('script');
       
-      // Use local files first
+        
       script.src = '/pdf.min.js';
       
       script.onload = () => {
@@ -20,7 +21,7 @@ async function loadPdfJs() {
       };
       
       script.onerror = () => {
-        // Fallback to CDN if local files fail
+        // fallback se os arquivos locais falharem
         const fallbackScript = document.createElement('script');
         fallbackScript.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
         fallbackScript.onload = () => {
@@ -73,7 +74,7 @@ export async function pdfToImage(file: File): Promise<File[]> {
 
     return images;
   } catch (error) {
-    console.error('Error processing PDF:', error);
-    throw new Error('Failed to process PDF file');
+    console.error('Erro ao processar PDF:', error);
+    throw new Error('Não foi possível processar o PDF');
   }
 }

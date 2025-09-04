@@ -9,7 +9,8 @@ export default function OCRPage() {
   const [file, setFile] = useState<File | null>(null);
   const [uploadedFileName, setUploadedFileName] = useState<string>("");
   const [isLoading, setIsLoading] = useState(false);
-  const [result, setResult] = useState<OcrResult[] | null>(null);
+  const [result, setResult] = useState<OcrResult[] | null>(null); // Lista do progresso e resultado das leituras
+  const [language, setLanguage] = useState<string[]>(["por"]);
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = event.target.files?.[0];
@@ -27,7 +28,7 @@ export default function OCRPage() {
       imageList = await pdfToImage(file);
     }
 
-    await imageToText(imageList, setResult);
+    await imageToText(imageList, setResult, language);
     setIsLoading(false);
   };
 
@@ -37,7 +38,19 @@ export default function OCRPage() {
     setUploadedFileName("");
   };
 
-  const calculateOverallProgress = (results: OcrResult[] | null): number => {
+  // Se a linguagem já estiver, é removida, se não, adiciona
+  const handleLanguageChange = (lang: string) => {
+    setLanguage((prev) => {
+      if (prev.includes(lang)) {
+        return prev.filter((l) => l !== lang);
+      } else {
+        return [...prev, lang];
+      }
+    });
+  };
+
+  // Calcula a média das porcentagens de todos itens
+  const calculateOverallProgress = (results: OcrResult[] | null): number => { 
     if (!results || results.length === 0) return 0;
     const total = results.reduce((sum, r) => sum + (r.progress || 0), 0);
     return total / results.length;
@@ -47,31 +60,39 @@ export default function OCRPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-red-50 to-red-200 flex flex-col">
-      {/* Header */}
-      <header className="flex justify-center pt-8">
-        <Image
-          src="/logo_serur.svg"
-          alt="SERUR"
-          width={120}
-          height={48}
-          className="h-12 md:h-16"
-        />
+      {/* Header fixo */}
+      <header className="fixed top-0 left-0 w-full bg-gradient-to-b from-red-50 to-red-100 shadow-sm z-10 py-4">
+        <div className="flex justify-center">
+          <Image
+            src="/logo_serur.svg"
+            alt="SERUR"
+            width={120}
+            height={48}
+            className="h-12 md:h-16"
+          />
+        </div>
       </header>
 
-      <main className="flex-1 flex flex-col items-center justify-center px-4 py-8 w-full">
+      <main className="flex-1 flex flex-col items-center justify-center px-4 py-8 w-full mt-24">
         {result && result.length > 0 ? (
           <div className="max-w-4xl w-full space-y-6">
             <div className="text-center">
               <h2 className="text-2xl font-bold text-gray-800 mb-2">
-                {isLoading ? "Processando documento..." : "Resultado da extração"}
+                {isLoading
+                  ? "Processando documento..."
+                  : "Resultado da extração"}
               </h2>
             </div>
 
             {/* Barra de progresso geral */}
             <div className="mb-6">
               <div className="flex justify-between mb-1">
-                <span className="text-sm font-medium text-gray-700">Progresso Total</span>
-                <span className="text-sm text-gray-500">{Math.round(overallProgress * 100)}%</span>
+                <span className="text-sm font-medium text-gray-700">
+                  Progresso Total
+                </span>
+                <span className="text-sm text-gray-500">
+                  {Math.round(overallProgress * 100)}%
+                </span>
               </div>
               <div className="w-full bg-gray-200 rounded-full h-5 overflow-hidden">
                 <div
@@ -88,7 +109,9 @@ export default function OCRPage() {
               {result.map((item, idx) => (
                 <div key={idx} className="mb-6 border-b pb-4 last:border-b-0">
                   <div className="flex justify-between mb-2">
-                    <span className="text-lg font-medium text-gray-700">Página {idx + 1}</span>
+                    <span className="text-lg font-medium text-gray-700">
+                      Página {idx + 1}
+                    </span>
                     <span className="text-sm text-gray-500">
                       {Math.round((item.progress ?? 0) * 100)}%
                     </span>
@@ -100,19 +123,27 @@ export default function OCRPage() {
                       className={`absolute left-0 top-0 h-4 rounded-full transition-all duration-300 ${
                         item.result ? "bg-green-500" : "bg-red-500"
                       }`}
-                      style={{ width: `${item.result ? 100 : (item.progress ?? 0) * 100}%` }}
+                      style={{
+                        width: `${
+                          item.result ? 100 : (item.progress ?? 0) * 100
+                        }%`,
+                      }}
                     />
                   </div>
 
                   {/* Status da página */}
                   <p className="text-sm text-gray-500 text-center mb-2">
-                    {item.result ? "Concluído" : item.status || "Processando..."}
+                    {item.result
+                      ? "Concluído"
+                      : item.status || "Processando..."}
                   </p>
 
                   {/* Texto extraído */}
                   {item.result && (
                     <div className="bg-gray-50 p-4 rounded-lg">
-                      <pre className="whitespace-pre-wrap text-sm text-gray-800">{item.result}</pre>
+                      <pre className="whitespace-pre-wrap text-sm text-gray-800">
+                        {item.result}
+                      </pre>
                     </div>
                   )}
                 </div>
@@ -132,13 +163,52 @@ export default function OCRPage() {
           </div>
         ) : (
           <div className="max-w-2xl w-full space-y-8">
+            {/* Título e subtítulo */}
             <div className="text-center space-y-4">
-              <h1 className="text-black text-4xl font-bold mb-2">Upload de Documento</h1>
+              <h1 className="text-black text-4xl font-bold mb-2">
+                Upload de Documento
+              </h1>
               <p className="text-xl text-gray-500 max-w-2xl mx-auto">
                 Selecione seu documento para extrair o texto automaticamente
               </p>
             </div>
 
+            {/* Linguagem*/}
+            <div className="w-full max-w-2xl mx-auto mb-4">
+              <div className="bg-white/90 backdrop-blur-sm rounded-xl shadow-md border border-gray-100 p-4">
+                <h3 className="text-center text-gray-700 font-medium mb-3">
+                  Idiomas para reconhecimento
+                </h3>
+                <div className="flex items-center justify-center gap-4">
+                  <button
+                    type="button"
+                    onClick={() => handleLanguageChange("por")}
+                    className={`flex items-center px-4 py-2 rounded-lg border transition-all duration-200 font-medium ${
+                      language.includes("por")
+                        ? "bg-red-500 text-white border-red-600 shadow-md transform scale-105"
+                        : "bg-white text-gray-800 border-gray-300 hover:bg-red-50"
+                    }`}
+                  >
+                    <span className="mr-2 text-xl">🇧🇷</span>
+                    <span>Português</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleLanguageChange("eng")}
+                    className={`flex items-center px-4 py-2 rounded-lg border transition-all duration-200 font-medium ${
+                      language.includes("eng")
+                        ? "bg-red-500 text-white border-red-600 shadow-md transform scale-105"
+                        : "bg-white text-gray-800 border-gray-300 hover:bg-red-50"
+                    }`}
+                  >
+                    <span className="mr-2 text-xl">🇺🇸</span>
+                    <span>Inglês</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Upload*/}
             <div className="bg-white rounded-xl shadow-lg p-8">
               <div className="flex flex-col items-center gap-6">
                 <input
@@ -150,7 +220,8 @@ export default function OCRPage() {
 
                 {file && (
                   <p className="text-sm text-gray-600 text-center">
-                    Arquivo selecionado: <span className="font-medium">{file.name}</span>
+                    Arquivo selecionado:{" "}
+                    <span className="font-medium">{file.name}</span>
                   </p>
                 )}
 
