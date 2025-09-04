@@ -46,7 +46,7 @@ export async function POST(req: NextRequest) {
       headers: { "Content-Type": "application/json" },
     });
   } catch (err) {
-    return Response.json({ message: "O log foi escrito com sucesso." }, { status: 200 });
+    return Response.json({ message: `O log não foi possível ser escrito: ${err}` }, { status: 200 });
   }
 }
 

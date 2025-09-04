@@ -25,7 +25,7 @@ export default function OCRPage() {
     setIsLoading(true);
     setUploadedFileName(file.name);
 
-    let log: LogEntry = {
+    const log: LogEntry = {
       timestamp: new Date().toISOString(),
       status: "",
       filename: file.name,
