@@ -5,6 +5,8 @@ import imageToText from "@/lib/ocr";
 import type { OcrResult } from "@/types/ocr";
 import { pdfToImage } from "@/lib/pdf";
 import type { LogEntry } from "@/types/log";
+import toast, { Toaster } from "react-hot-toast";
+
 export default function OCRPage() {
   const [file, setFile] = useState<File | null>(null);
   const [uploadedFileName, setUploadedFileName] = useState<string>("");
@@ -19,6 +21,7 @@ export default function OCRPage() {
 
   const handleFileUpload = async () => {
     if (!file) return;
+    if (file.size > 15 * 1000000) return toast.error("O arquivo pesa mais de 15MB."); // 15MB
     setIsLoading(true);
     setUploadedFileName(file.name);
 
@@ -39,8 +42,11 @@ export default function OCRPage() {
       }
 
       await imageToText(imageList, setResult, language);
+      toast.success(
+        "O texto foi lido com sucesso. Clique para copiar ou baixar!"
+      );
     } catch (error) {
-      alert(`Erro ao processar o arquivo: ${error}`);
+      toast.error(`Erro ao processar o arquivo: ${error}`);
       log.status = "erro";
     } finally {
       setIsLoading(false);
@@ -69,9 +75,9 @@ export default function OCRPage() {
   const handleCopyText = (text: string) => {
     try {
       navigator.clipboard.writeText(text);
-      alert("Texto copiado com sucesso."); // TODO: trocar por toaster
-    } catch (e) {
-      alert(`Erro ao copiar: ${e}`);
+      toast.success("Texto copiado com sucesso.");
+    } catch (err) {
+      toast.error(`Erro ao copiar: ${err}`);
     }
   };
 
@@ -86,7 +92,7 @@ export default function OCRPage() {
       element.click();
       document.body.removeChild(element);
     } catch (e) {
-      alert(`Erro ao baixar: ${e}`);
+      toast.error(`Erro ao baixar: ${e}`);
     }
   };
 
@@ -102,6 +108,7 @@ export default function OCRPage() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-red-50 to-red-200 flex flex-col">
       {/* Header fixo */}
+      <Toaster />
       <header className="fixed top-0 left-0 w-full bg-gradient-to-b from-red-50 to-red-100 shadow-sm z-10 py-4">
         <div className="flex justify-center">
           <Image
@@ -277,7 +284,9 @@ export default function OCRPage() {
                   onChange={handleFileChange}
                   className="file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-red-50 file:text-red-600 hover:file:bg-red-100"
                 />
-
+                <p className="text-xs text-gray-500 mt-2 text-center">
+                  Tamanho máximo do arquivo: 15MB
+                </p>
                 {file && (
                   <p className="text-sm text-gray-600 text-center">
                     Arquivo selecionado:{" "}
