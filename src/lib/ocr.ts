@@ -3,44 +3,51 @@ import Tesseract from "tesseract.js";
 import type { OcrResult } from "@/types/ocr";
 const { createWorker } = Tesseract;
 
-//TODO: Refatorar para deixar o código mais legível
-
 export default async function imageToText(
   file: File[],
   setResult: Dispatch<SetStateAction<OcrResult[] | null>>
 ) {
   if (!file) return "Imagem não encontrada";
 
-  let imageIndex = 0;
-
-  const worker = await createWorker("por", 1, { // TODO: Adicionar suporte a inglês/português
+  // Inicializar o array de resultados para todas as páginas aparecerem o progresso antes de serem processadas
+  setResult(Array(file.length).fill({}).map(() => ({ 
+    status: "carregando", 
+    progress: 0 
+  })));
+  
+  // Variável para rastrear o índice atual e conseguir atualizar o progresso com o logger do tesseract
+  let currentImageIndex = 0;
+  
+  const worker = await createWorker("eng", 1, { 
     logger: (m) => {
       setResult((prev) => {
-        let oldList = prev ?? [];
-        const newList = [...oldList];
-        newList[imageIndex] = {
-          ...newList[imageIndex],
+        const newList = [...(prev || [])];
+        newList[currentImageIndex] = {
+          ...newList[currentImageIndex],
           status: m.status,
           progress: m.progress,
         };
         return newList;
       });
-      console.log(m);
     },
   });
-
-  for (let imageIndex = 0; imageIndex < file.length; imageIndex++) {
-    // percorre todas as imagens; considerando uma lista por conta do PDF
-    const input = await worker.recognize(file[imageIndex]);
+  
+  for (let i = 0; i < file.length; i++) {
+    // Atualizar o índice atual
+    currentImageIndex = i;
+    
+    // Processar a imagem atual
+    const input = await worker.recognize(file[i]);
+    
     setResult((prev) => {
-      let oldList = prev ?? [];
-      const newList = [...oldList];
-      newList[imageIndex] = {
-        ...newList[imageIndex],
+      const newList = [...(prev || [])];
+      newList[i] = {
+        ...newList[i],
         result: input.data.text
       };
       return newList;
     });
   }
-  await worker.terminate()
+  
+  await worker.terminate();
 }
