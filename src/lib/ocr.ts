@@ -5,7 +5,8 @@ const { createWorker } = Tesseract;
 
 export default async function imageToText(
   file: File[],
-  setResult: Dispatch<SetStateAction<OcrResult[] | null>>
+  setResult: Dispatch<SetStateAction<OcrResult[] | null>>,
+  language?: string[]
 ) {
   if (!file) return "Imagem não encontrada";
 
@@ -17,8 +18,8 @@ export default async function imageToText(
   
   // Variável para rastrear o índice atual e conseguir atualizar o progresso com o logger do tesseract
   let currentImageIndex = 0;
-  
-  const worker = await createWorker("eng", 1, { 
+  const lang = language ?? ["por"];
+  const worker = await createWorker(lang, 1, { 
     logger: (m) => {
       setResult((prev) => {
         const newList = [...(prev || [])];
