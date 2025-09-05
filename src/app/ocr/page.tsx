@@ -1,11 +1,14 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Image from "next/image";
 import imageToText from "@/lib/ocr";
 import type { OcrResult } from "@/types/ocr";
 import { pdfToImage } from "@/lib/pdf";
 import type { LogEntry } from "@/types/log";
 import toast, { Toaster } from "react-hot-toast";
+import Modal from "../components/modal";
+import { applyBlackWhiteFilter } from "@/lib/filter";
+
 
 export default function OCRPage() {
   const [file, setFile] = useState<File | null>(null);
@@ -13,10 +16,69 @@ export default function OCRPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState<OcrResult[] | null>(null); // Lista do progresso e resultado das leituras
   const [language, setLanguage] = useState<string[]>(["por"]);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [processedImages, setProcessedImages] = useState<string[]>([]);
+  const [filteredImagesFiles, setFilteredImagesFiles] = useState<File[]>([]);
+  const [filteredImages, setFilteredImages] = useState<string[]>([]);
+  const [processedImageFiles, setProcessedImageFiles] = useState<File[]>([]);
+  const [blackAndWhiteFilter, setBlackAndWhiteFilter] = useState(false);
 
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+
+
+  const handleBWFilter = async () => {
+    if (!processedImageFiles) return;
+    
+    try {
+      const { filteredUrls, filteredFiles } = await applyBlackWhiteFilter(processedImages);
+      setFilteredImages(filteredUrls);
+      setFilteredImagesFiles(filteredFiles);
+    } catch (error) {
+      console.error("Erro ao aplicar filtro:", error);
+      toast.error("Erro ao aplicar filtro preto e branco");
+    }
+  };
+
+  // Monitorar mudanças no checkbox do filtro preto e branco
+  useEffect(() => {
+    if (blackAndWhiteFilter) {
+      // Aplicar filtro preto e branco
+      handleBWFilter();
+    } else {
+      // Voltar para as imagens originais
+      setFilteredImages(processedImages);
+      setFilteredImagesFiles(processedImageFiles);
+    }
+  }, [blackAndWhiteFilter, processedImages, processedImageFiles]);
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = event.target.files?.[0];
-    if (selectedFile) setFile(selectedFile);
+    if (selectedFile) {
+      setFile(selectedFile);
+
+      // Processar imagens para preview
+      try {
+        let imageList: File[] = [selectedFile];
+
+        if (selectedFile.type === "application/pdf") {
+          imageList = await pdfToImage(selectedFile);
+        }
+
+        // Converter files para URLs para preview
+        const imageUrls = imageList.map(file => URL.createObjectURL(file));
+        setProcessedImages(imageUrls);
+        setFilteredImages(imageUrls);
+        setProcessedImageFiles(imageList); // Armazenar os files também
+        setFilteredImagesFiles(imageList); // Armazenando duas vezes pois a primeira será para reverter filtros.
+      } catch (error) {
+        console.error("Erro ao processar imagens:", error);
+        // Para imagens simples, criar URL diretamente
+        if (selectedFile.type.startsWith('image/')) {
+          setProcessedImages([URL.createObjectURL(selectedFile)]);
+          setProcessedImageFiles([selectedFile]);
+          setFilteredImagesFiles([selectedFile]);
+          setFilteredImages([URL.createObjectURL(selectedFile)]);
+        }
+      }
+    }
   };
 
   const handleFileUpload = async () => {
@@ -52,11 +114,8 @@ export default function OCRPage() {
     };
 
     try {
-      let imageList: File[] = [file];
-
-      if (file.type === "application/pdf") {
-        imageList = await pdfToImage(file);
-      }
+      // Usar as imagens filtradas (que podem ser originais ou com filtro aplicado)
+      let imageList: File[] = filteredImagesFiles.length > 0 ? filteredImagesFiles : [file];
 
       await imageToText(imageList, setResult, language);
       toast.success(
@@ -76,6 +135,13 @@ export default function OCRPage() {
     setFile(null);
     setResult(null);
     setUploadedFileName("");
+
+    // Limpar URLs dos objetos para evitar vazamentos de memória
+    processedImages.forEach(url => URL.revokeObjectURL(url));
+    setProcessedImages([]);
+    setFilteredImages([]);
+    setProcessedImageFiles([]);
+    setFilteredImagesFiles([]);
   };
 
   // Se a linguagem já estiver, é removida, se não, adiciona
@@ -173,13 +239,11 @@ export default function OCRPage() {
                   {/* Barra individual */}
                   <div className="relative w-full bg-gray-200 rounded-full h-4 mb-2 overflow-hidden">
                     <div
-                      className={`absolute left-0 top-0 h-4 rounded-full transition-all duration-300 ${
-                        item.result ? "bg-green-500" : "bg-red-500"
-                      }`}
+                      className={`absolute left-0 top-0 h-4 rounded-full transition-all duration-300 ${item.result ? "bg-green-500" : "bg-red-500"
+                        }`}
                       style={{
-                        width: `${
-                          item.result ? 100 : (item.progress ?? 0) * 100
-                        }%`,
+                        width: `${item.result ? 100 : (item.progress ?? 0) * 100
+                          }%`,
                       }}
                     />
                   </div>
@@ -255,11 +319,10 @@ export default function OCRPage() {
                   <button
                     type="button"
                     onClick={() => handleLanguageChange("por")}
-                    className={`flex items-center px-4 py-2 rounded-lg border transition-all duration-200 font-medium ${
-                      language.includes("por")
-                        ? "bg-red-500 text-white border-red-600 shadow-md transform scale-105"
-                        : "bg-white text-gray-800 border-gray-300 hover:bg-red-50"
-                    }`}
+                    className={`flex items-center px-4 py-2 rounded-lg border transition-all duration-200 font-medium ${language.includes("por")
+                      ? "bg-red-500 text-white border-red-600 shadow-md transform scale-105"
+                      : "bg-white text-gray-800 border-gray-300 hover:bg-red-50"
+                      }`}
                   >
                     <span className="mr-2 text-xl">🇧🇷</span>
                     <span>Português</span>
@@ -267,11 +330,10 @@ export default function OCRPage() {
                   <button
                     type="button"
                     onClick={() => handleLanguageChange("eng")}
-                    className={`flex items-center px-4 py-2 rounded-lg border transition-all duration-200 font-medium ${
-                      language.includes("eng")
-                        ? "bg-red-500 text-white border-red-600 shadow-md transform scale-105"
-                        : "bg-white text-gray-800 border-gray-300 hover:bg-red-50"
-                    }`}
+                    className={`flex items-center px-4 py-2 rounded-lg border transition-all duration-200 font-medium ${language.includes("eng")
+                      ? "bg-red-500 text-white border-red-600 shadow-md transform scale-105"
+                      : "bg-white text-gray-800 border-gray-300 hover:bg-red-50"
+                      }`}
                   >
                     <span className="mr-2 text-xl">🇺🇸</span>
                     <span>Inglês</span>
@@ -294,29 +356,125 @@ export default function OCRPage() {
                 <p className="text-xs text-gray-500 text-center">
                   Tipos aceitos: PDF, PNG e JPG
                 </p>
-                {file && (
-                  <p className="text-sm text-gray-600 text-center">
-                    Arquivo selecionado:{" "}
-                    <span className="font-medium">{file.name}</span>
-                  </p>
-                )}
 
-                <button
-                  onClick={handleFileUpload}
-                  disabled={!file || isLoading}
-                  className={`px-8 py-3 rounded-lg font-semibold text-lg transition ${
-                    !file || isLoading
+                {/* UPLOAD + EDIT */}
+                <div className="flex flex-row gap-2">
+                  <button
+                    onClick={handleFileUpload}
+                    disabled={!file || isLoading}
+                    className={`px-8 py-3 rounded-lg font-semibold text-lg transition ${!file || isLoading
                       ? "bg-gray-400 text-gray-600 cursor-not-allowed"
                       : "bg-red-500 text-white hover:bg-red-700"
-                  }`}
-                >
-                  {isLoading ? "Processando..." : "UPLOAD"}
-                </button>
+                      }`}
+                  >
+                    {isLoading ? "Processando..." : "UPLOAD"}
+                  </button>
+
+
+                  <button
+                    onClick={() => {
+                      if (file && !isLoading) {
+                        setIsModalOpen(true);
+                      }
+                    }}
+                    disabled={!file || isLoading}
+                    className={`flex items-center rounded-2xl outline-1 transition ${!file || isLoading
+                      ? "bg-gray-400 text-gray-600 cursor-not-allowed hidden"
+                      : "bg-red-500 text-white hover:bg-red-700 cursor-pointer"
+                      }`}
+                  >
+                    <img src="/edit.svg" className="p-3" />
+                  </button>
+
+                </div>
+
               </div>
             </div>
           </div>
         )}
       </main>
+
+      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)}>
+        <div className="text-center">
+          <h2 className="text-2xl font-bold text-gray-800 mb-4">Editor de Documento</h2>
+          <p className="text-gray-600 mb-6">
+            Essas são as imagens enviadas, você pode melhorar a visualização ativando o filtro preto e branco.
+          </p>
+
+          {file && (
+            <div className="space-y-6">
+
+
+              {
+                filteredImages.length > 0 && (
+                  <div className="text-left">
+                    <label className="block text-sm font-medium text-gray-700 mb-3">
+                      Páginas/Imagens ({
+                        filteredImages.length}):
+                    </label>
+                    <div className="max-h-96 overflow-y-auto space-y-4">
+                      {
+                        filteredImages.map((imageUrl, index) => (
+                          <div key={index} className="border rounded-lg p-3 bg-gray-50">
+                            <p className="text-sm font-medium text-gray-600 mb-2">
+                              Página {index + 1}
+                            </p>
+                            <img
+                              src={imageUrl}
+                              alt={`Página ${index + 1}`}
+                              className="w-full max-w-sm mx-auto rounded border shadow-sm"
+                            />
+                          </div>
+
+                        ))}
+                    </div>
+
+                    {/* Checkbox estilizado para filtro preto e branco */}
+                    <div className="mt-6 p-4 bg-white rounded-lg border border-gray-200 shadow-sm">
+                      <label className="flex items-center cursor-pointer group">
+                        <div className="relative">
+                          <input
+                            type="checkbox"
+                            name="blackWhiteFilter"
+                            checked={blackAndWhiteFilter}
+                            onChange={(e) => setBlackAndWhiteFilter(e.target.checked)}
+                            className="sr-only"
+                          />
+                          <div className={`w-6 h-6 rounded-md border-2 transition-all duration-200 flex items-center justify-center ${blackAndWhiteFilter
+                            ? 'bg-red-500 border-red-500 shadow-md'
+                            : 'bg-white border-gray-300 group-hover:border-red-400'
+                            }`}>
+                            {blackAndWhiteFilter && (
+                              <svg
+                                className="w-4 h-4 text-white"
+                                fill="currentColor"
+                                viewBox="0 0 20 20"
+                              >
+                                <path
+                                  fillRule="evenodd"
+                                  d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                                  clipRule="evenodd"
+                                />
+                              </svg>
+                            )}
+                          </div>
+                        </div>
+                        <div className="ml-3">
+                          <span className="text-sm font-medium text-gray-900 group-hover:text-red-600 transition-colors">
+                            Ativar filtro preto e branco
+                          </span>
+                          <p className="text-xs text-gray-500 mt-1">
+                            Melhora a leitura de documentos com baixo contraste
+                          </p>
+                        </div>
+                      </label>
+                    </div>
+                  </div>
+                )}
+            </div>
+          )}
+        </div>
+      </Modal>
     </div>
   );
 }
