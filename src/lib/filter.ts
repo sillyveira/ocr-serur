@@ -33,7 +33,7 @@ export const applyBlackWhiteFilter = async (
     
     const imgData = ctx.getImageData(0, 0, canvasBW.width, canvasBW.height);
     for (let i = 0; i < imgData.data.length; i += 4) {
-      let count = imgData.data[i] + imgData.data[i + 1] + imgData.data[i + 2];
+      const count = imgData.data[i] + imgData.data[i + 1] + imgData.data[i + 2];
       let colour = 0;
       if (count > 510) colour = 255;
       else if (count > 255) colour = 127.5;

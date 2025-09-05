@@ -115,7 +115,7 @@ export default function OCRPage() {
 
     try {
       // Usar as imagens filtradas (que podem ser originais ou com filtro aplicado)
-      let imageList: File[] = filteredImagesFiles.length > 0 ? filteredImagesFiles : [file];
+      const imageList: File[] = filteredImagesFiles.length > 0 ? filteredImagesFiles : [file];
 
       await imageToText(imageList, setResult, language);
       toast.success(
