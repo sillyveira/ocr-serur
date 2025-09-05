@@ -1,36 +1,39 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# OCR SERUR 📄
 
-## Getting Started
+Aplicação web para extração de texto de documentos usando OCR. Desenvolvida com Next.js, Tesseract.js e PDF.js.
 
-First, run the development server:
+🌐 **[Ver online](https://ocr-serur.vercel.app/)**
+
+## Como rodar local
 
 ```bash
+git clone https://github.com/sillyveira/ocr-serur.git
+cd ocr-serur
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Acesse: http://localhost:3000
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Limitações
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- **Tamanho**: Máximo 15MB
+- **Tipos**: PDF, PNG, JPG
+- **Idiomas**: Português e Inglês
 
-## Learn More
+## Como funciona
 
-To learn more about Next.js, take a look at the following resources:
+**Upload** → **OCR** → **Resultado**
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+1. Usuário faz upload do arquivo e seleciona idioma.
+2. Sistema processa com Tesseract.js (PDFs são convertidos para imagem através do PDF.js)  
+3. Texto extraído pode ser copiado ou baixado
+4. O log de cada ação é gerada no servidor e guardado em /logs.json, os logs podem ser acessados com uma requsição GET a localhost:3000/api/log.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## O que aprendi
 
-## Deploy on Vercel
+> Foquei em ler as documentações de todas as bibliotecas usadas e do Next. Também aprendi bastante com meus erros durante o desenvolvimento, por mais que não tenha conseguido implementar o PDF.js no servidor (limitações do Vercel), aprendi a lidar com envio e recebimento de arquivos por requisição HTTP (manipular Blob, o que é um buffer, etc.), entendi como funciona a conversão de pdf->imagem por trás e fiz no lado do client. 
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+> Melhorei a minha tipagem e estruturação de projetos no Next. Enfrentei alguns desafios técnicos, como na parte de demonstrar o progresso do OCR (ao usar um único worker, é necessário manipular o logger da função para monitorar o progresso de múltiplas páginas) e isso me levou a melhorar minhas capacidades de resolução de problema e uso melhor do JS puro.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+> Foi a minha primeira vez usando as API Routes do Next, estudei as tipagens e entendi melhor como funcionam a partir da documentação e uso no projeto. 
