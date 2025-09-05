@@ -21,7 +21,24 @@ export default function OCRPage() {
 
   const handleFileUpload = async () => {
     if (!file) return;
-    if (file.size > 15 * 1000000) return toast.error("O arquivo pesa mais de 15MB."); // 15MB
+    if (file.size > 15 * 1000000) return toast.error("O arquivo pesa mais de 15MB.");
+    if (language.length === 0) {
+      return toast.error("Selecione pelo menos um idioma.");
+    }
+    const allowedTypes = [
+      "application/pdf",
+      "image/png",
+      "image/jpeg",
+      "image/jpg",
+    ];
+
+    if (!allowedTypes.includes(file.type)) {
+      toast.error("Tipo de arquivo não suportado. Aceitamos apenas PDF, PNG, JPG ou JPEG.");
+      return;
+    }
+    // restrições impostas acima
+
+
     setIsLoading(true);
     setUploadedFileName(file.name);
 
@@ -108,7 +125,7 @@ export default function OCRPage() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-red-50 to-red-200 flex flex-col">
       {/* Header fixo */}
-      <Toaster />
+      <Toaster position="top-right" />
       <main className="flex-1 flex flex-col items-center justify-center px-4 py-8 w-full mt-24">
         {result && result.length > 0 ? (
           <div className="max-w-4xl w-full space-y-6">
@@ -265,15 +282,17 @@ export default function OCRPage() {
 
             {/* Upload*/}
             <div className="bg-white rounded-xl shadow-lg p-8">
-              <div className="flex flex-col items-center gap-6">
+              <div className="flex flex-col items-center gap-4">
                 <input
                   type="file"
-                  accept=".pdf,.jpg,.jpeg,.png"
                   onChange={handleFileChange}
                   className="file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-red-50 file:text-red-600 hover:file:bg-red-100"
                 />
                 <p className="text-xs text-gray-500 mt-2 text-center">
                   Tamanho máximo do arquivo: 15MB
+                </p>
+                <p className="text-xs text-gray-500 text-center">
+                  Tipos aceitos: PDF, PNG e JPG
                 </p>
                 {file && (
                   <p className="text-sm text-gray-600 text-center">
